@@ -1,25 +1,11 @@
 import * as dotenv from 'dotenv';
-import { DataSource } from 'typeorm';
 import User from './models/user';
 import Currency from './models/currency';
 import Price from './models/price';
+import dataSource from './dataSource';
 
 // Load .env file
 dotenv.config();
-
-// Establish database connection
-const dataSource = new DataSource({
-	host: process.env.DB_HOST,
-	port: Number(process.env.DB_PORT),
-	username: process.env.DB_USER,
-	password: process.env.DB_PASSWORD,
-	database: process.env.DB_NAME,
-	type: 'mysql',
-	synchronize: true,
-	logging: ['error'],
-	logger: 'simple-console',
-	entities: [__dirname + '/**/models/*.{ts,js}']
-});
 
 // Data to insert in DB
 const users = [{ firstName: 'admin', lastName: 'admin', username: 'admin', password: 'admin', email: 'admin@admin.com', role: 'admin' }];
