@@ -74,9 +74,9 @@ dataSource
 			newRecord.hashPassword();
 			try {
 				await newRecord.save();
-				console.info('User created ok', newData.username);
+				console.info('User created ok:', newData.username);
 			} catch (err) {
-				console.error('User creating error', newData.username, err);
+				console.error('User creating error:', newData.username, err);
 			}
 		}
 
@@ -104,9 +104,9 @@ dataSource
 			}
 			try {
 				await newRecord.save();
-				console.info('Currency created ok', newData.name);
+				console.info('Currency created ok:', newData.name);
 			} catch (err) {
-				console.error('Currency creating error', newData.name, err);
+				console.error('Currency creating error:', newData.name, err);
 			}
 		}
 
