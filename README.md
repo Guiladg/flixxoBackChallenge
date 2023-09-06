@@ -28,21 +28,7 @@ Database handling is made through TypeORM plugin. Endpoints that show lists are 
 
 ## Installing
 
-### Database
-
-Commands to run on MySQL CLI:
-
-```sql
-CREATE SCHEMA guiladgFlixxo;
-CREATE USER 'guiladgFlixxoUser'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
-GRANT ALL ON fl.* to guiladgFlixxoUser@localhost;
-```
-
-_Please set a strong password, 123456 is an example_
-
-This will create a new database and a new user with all privileges granted.
-
-### Core
+### Core files
 
 To run the API on a new server, first of all, clone repository from GitHub
 
@@ -53,6 +39,20 @@ npm i
 ```
 
 This steps will download all the development files, and install the dependencies.
+
+### Database
+
+Commands to run on MySQL CLI:
+
+```sql
+CREATE SCHEMA guiladgFlixxo;
+CREATE USER 'guiladgFlixxoUser'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
+GRANT ALL ON guiladgFlixxo.* to guiladgFlixxoUser@localhost;
+```
+
+_Please set a strong password, 123456 is an example_
+
+This will create a new database and a new user with all privileges granted.
 
 ### Configuration
 

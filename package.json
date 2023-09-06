@@ -1,11 +1,11 @@
 {
-   "name": "boilerplate-server",
+   "name": "flixxo-back-chall",
    "version": "1.0.0",
-   "description": "Express Boilerplate",
+   "description": "Flixxo Backend Challenge",
    "main": "./index.js",
    "author": {
       "name": "Guilad Gonen",
-      "url": "https://guiladg.coderpals.com"
+      "url": "https://github.com/guiladg"
    },
    "dependencies": {
       "bcryptjs": "^2.4.3",
@@ -37,11 +37,6 @@
       "ts-node": "^10.9.1",
       "ts-node-dev": "^2.0.0",
       "typescript": "^5.2.2"
-   },
-   "overrides": {
-      "typeorm": {
-         "glob": "7.2.3"
-      }
    },
    "scripts": {
       "build": "rimraf ./build && tsc",
