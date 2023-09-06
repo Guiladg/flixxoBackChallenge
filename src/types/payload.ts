@@ -8,3 +8,9 @@ export interface RefreshPayload {
 	idUser: number;
 	token: string;
 }
+
+declare module 'express-serve-static-core' {
+	interface Request {
+		jwtPayload?: Payload;
+	}
+}
