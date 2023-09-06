@@ -55,5 +55,3 @@ dataSource
 		console.error('*  Error initializing database:', error);
 		console.error(`***************************************************************************\n`);
 	});
-
-console.log('env', process.env.NODE_ENV);
