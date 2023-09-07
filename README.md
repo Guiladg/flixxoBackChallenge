@@ -30,7 +30,7 @@ Database handling is made through TypeORM plugin. Endpoints that show lists are 
 
 ### Core files
 
-To run the API on a new server, first of all, clone repository from GitHub
+To run the API on a new server, first of all, clone the repository from GitHub
 
 ```shell
 git clone https://github.com/guiladg/flixxoBackChallenge
@@ -38,7 +38,7 @@ cd flixxoBackChallenge/
 npm i
 ```
 
-This steps will download all the development files, and install the dependencies.
+This steps will download all the development files and install the dependencies.
 
 ### Database
 
@@ -166,6 +166,6 @@ Depende sel sistema de bases de datos que se use. Algunos, proporcionan directam
 
 ### Usando async/await: ¿cómo se puede aprovechar el paralelismo?
 
-Node.js incorpora algo, que en su momento fue muy revolucionario en cuanto al estándar de internet, que era —y en parte continúa siéndolo— PHP. La posibilidad de ejecutar procesos en paralelo, permite una utilización mucho más razonable de los recursos del sistema. Por ejemplo, hay procesos que demoran mucho tiempo, sobre todo los que implican lectura/escritura de datos en discos, poder procesar información, "mandarla" a grabar en el disco mientras se recibe otra petición y se trabaja con ella instantaneamente, es uno de los casos típicos. Cualquier proceso que pueda realizarse por partes, que no requieran su ejecución lineal, tiene sentido realizarlas mediante subprocesos asíncronos.
+Node.js incorpora algo, que en su momento fue muy revolucionario en cuanto al estándar de internet, que era —y en parte continúa siéndolo— PHP. La posibilidad de ejecutar procesos en paralelo, permite una utilización mucho más razonable de los recursos del sistema. Por ejemplo, hay procesos que demoran mucho tiempo, sobre todo los que implican lectura/escritura de datos en discos; poder procesar información, "mandarla" a grabar mientras se recibe otra petición y se trabaja con ella instantaneamente, es uno de los casos típicos. Cualquier proceso que pueda realizarse por partes, que no requieran su ejecución lineal, tiene sentido realizarlas mediante subprocesos asíncronos.
 
 La palabra clave `await`, permite que la ejecución del código se haga como si no fuera asíncrona, "esperando" a que la función en cuestión finalice antes de ejecutar la linea siguiente. Esto ayuda a la legibilidad del código, evitando las promesas en cascada.
