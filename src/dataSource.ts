@@ -12,21 +12,21 @@ export const dataSource = new DataSource({
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME,
 	entityPrefix: process.env.DB_PREFIX,
-	type: process.env.DB_TYPE as any,
 	synchronize: true,
 	logging: ['error', ...((process.env.NODE_ENV !== 'production' ? ['query'] : []) as LogLevel[])],
 	logger: 'simple-console',
 	entities: [__dirname + '/**/models/*.{ts,js}'],
-	...(process.env.DB_SSL
-		? {
-				ssl: true,
-				extra: {
-					ssl: {
-						rejectUnauthorized: false
-					}
-				}
-		  }
-		: {})
+	// This project can run on MySQL or PostgreSQL
+	type: process.env.DB_TYPE as any,
+	// SSL options
+	...(process.env.DB_SSL === 'true' && {
+		ssl: true,
+		extra: {
+			ssl: {
+				rejectUnauthorized: false
+			}
+		}
+	})
 });
 
 export default dataSource;
