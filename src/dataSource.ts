@@ -15,7 +15,13 @@ export const dataSource = new DataSource({
 	synchronize: true,
 	logging: ['error', ...((process.env.NODE_ENV !== 'production' ? ['query'] : []) as LogLevel[])],
 	logger: 'simple-console',
-	entities: [__dirname + '/**/models/*.{ts,js}']
+	entities: [__dirname + '/**/models/*.{ts,js}'],
+	ssl: true,
+	extra: {
+		ssl: {
+			rejectUnauthorized: false
+		}
+	}
 });
 
 export default dataSource;
