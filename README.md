@@ -24,7 +24,7 @@ Database handling is made through TypeORM plugin. Endpoints that show lists are 
 
 -  Node.js version >= 18
 -  NPM version >= 9
--  MySQL/MariaDB version = 8
+-  PostgreSQL >= 15
 
 ## Installing
 
@@ -42,12 +42,14 @@ This steps will download all the development files and install the dependencies.
 
 ### Database
 
-Commands to run on MySQL CLI:
+Commands to run on PSQL Shell:
 
 ```sql
-CREATE SCHEMA guiladgFlixxo;
-CREATE USER 'guiladgFlixxoUser'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
-GRANT ALL ON guiladgFlixxo.* to guiladgFlixxoUser@localhost;
+CREATE DATABASE guiladg_flixxo;
+CREATE USER guiladg_flixxo_user WITH ENCRYPTED PASSWORD '123456';
+GRANT ALL PRIVILEGES ON DATABASE guiladg_flixxo TO guiladg_flixxo_user;
+\c guiladg_flixxo postgres
+GRANT ALL ON SCHEMA public TO guiladg_flixxo_user;
 ```
 
 _Please set a strong password, 123456 is an example_

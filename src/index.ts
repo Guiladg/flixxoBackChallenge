@@ -1,5 +1,4 @@
 import * as dotenv from 'dotenv';
-import { DataSource, LogLevel } from 'typeorm';
 import express from 'express';
 import * as bodyParser from 'body-parser';
 import helmet from 'helmet';
