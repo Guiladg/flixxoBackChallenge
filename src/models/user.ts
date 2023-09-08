@@ -19,7 +19,7 @@ export default class User extends BaseEntity {
 	@IsNotEmpty()
 	lastName: string;
 
-	@VirtualColumn({ query: (alias) => `CONCAT(${alias}.lastName, ', ', ${alias}.firstName)` })
+	@VirtualColumn({ query: (alias) => `CONCAT(${alias}."lastName", ', ', ${alias}."firstName")` })
 	fullName: string;
 
 	@Column()
