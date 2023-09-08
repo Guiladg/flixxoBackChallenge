@@ -97,7 +97,13 @@ class PriceController {
 		}
 
 		// Get count of rows (for future pagination)
-		const totalRecords = await Price.count({ where: { currency: { symbol } } });
+		const totalRecords = await Price.count({
+			where: {
+				currency: {
+					symbol: symbol.toUpperCase()
+				}
+			}
+		});
 
 		// Create return to client object
 		const ret: ClientList = {
