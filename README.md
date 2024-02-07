@@ -12,13 +12,17 @@ It was developed on top of JSON Web Token (JWT) for authentication, and using ht
 
 Database handling is made through TypeORM plugin. Endpoints that show lists are prepared for future pagination, returning an object, that contains the data itself and the pagination status.
 
+Comments are made according to Deno style guide: https://docs.deno.com/runtime/manual/references/contributing/style_guide#use-jsdoc-for-exported-symbols.
+
 ### Built With
 
 -  Node.js
 -  Express
 -  JsonWebToken
--  TypeORM
+-  Sequelize
+-  Class-Validator
 -  BcryptJS
+-  Docker
 
 ### Prerequisites
 
@@ -26,7 +30,7 @@ Database handling is made through TypeORM plugin. Endpoints that show lists are 
 -  NPM version >= 9
 -  PostgreSQL >= 15
 
-## Installing
+## Installing - the basic setup
 
 ### Core files
 
@@ -35,10 +39,19 @@ To run the API on a new server, first of all, clone the repository from GitHub
 ```shell
 git clone https://github.com/guiladg/flixxoBackChallenge
 cd flixxoBackChallenge/
-npm i
 ```
 
-This steps will download all the development files and install the dependencies.
+This steps will download all the development files.
+
+### Configuration
+
+The app relies on a `.env` file as the environment-specific configuration. The repository comes with a `.env.sample` file that contains the needed variables and sample values.
+
+To create a new `.env` file with the same data provided in the sample file just copy and rename.
+
+_If database setup instructions will not be modified from the one in this file, there is no need to change .env either._
+
+## Installing - deploying without Docker
 
 ### Database
 
@@ -52,17 +65,17 @@ GRANT ALL PRIVILEGES ON DATABASE guiladg_flixxo TO guiladg_flixxo_user;
 GRANT ALL ON SCHEMA public TO guiladg_flixxo_user;
 ```
 
-_Please set a strong password, 123456 is an example_
+_Use the password set on the .env file before_
 
 This will create a new database and a new user with all privileges granted.
 
-### Configuration
+### Downloading dependencies
 
-The app relies on a `.env` file as the environment-specific configuration. The repository comes with a `.env.sample` file that contains the needed variables and sample values.
+```shell
+npm i
+```
 
-To create a new `.env` file with the same data provided in the sample file just copy and rename.
-
-_If database setup instructions were not modified from the one in this file, there is no need to change .env either._
+This will download the dependencies required to run the application.
 
 ### Mocking data
 
@@ -79,10 +92,18 @@ This will create an administrator user with username: **admin** and password: **
 After setting up the environment or if any of the files are modified, the project needs to be built and started. For archiving this:
 
 ```shell
-npm run start
+npm run start:prod
 ```
 
 This will build and run the application, and start listening for RESTful API requests.
+
+## Installing - deploying with Docker
+
+For deploying in a server with a Docking environment just run the following command and wait for containers to start. Two containers will be created, one with the app, and the other with the database. On the first run it will also automatically mock data.
+
+```shell
+docker-compose up
+```
 
 ## Api Reference
 
