@@ -9,6 +9,7 @@ export interface RefreshPayload {
 	token: string;
 }
 
+// Add jwtPayload to express Request object
 declare module 'express-serve-static-core' {
 	interface Request {
 		jwtPayload?: Payload;

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import * as jwt from 'jsonwebtoken';
 import { Payload } from '../types/payload';
+import { verifyToken } from '../utils/jwt';
 
 export interface JwtMiddlewareOptions {
 	allowPublic?: boolean;
@@ -9,7 +9,7 @@ export interface JwtMiddlewareOptions {
 	next: NextFunction;
 }
 
-/** Check if JWT tokens are valid. If `allowPublic` option is true, the non-provided-token errors are bypassed.  */
+/** Checks if JWT tokens are valid. If `allowPublic` option is true, the non-provided-token errors are bypassed.  */
 export function jwtMiddleware({ allowPublic, req, res, next }: JwtMiddlewareOptions) {
 	// Control (non-http-only) token from cookies
 	const controlToken = req.cookies.control_token;
@@ -32,7 +32,7 @@ export function jwtMiddleware({ allowPublic, req, res, next }: JwtMiddlewareOpti
 
 	// Validate control token
 	try {
-		jwt.verify(controlToken, process.env.REFRESH_TOKEN_SECRET);
+		verifyToken('control', controlToken);
 	} catch (error) {
 		return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Invalid control token' : '');
 	}
@@ -40,7 +40,7 @@ export function jwtMiddleware({ allowPublic, req, res, next }: JwtMiddlewareOpti
 	// Validate access token
 	let payload: Payload;
 	try {
-		payload = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET) as Payload;
+		payload = verifyToken('access', accessToken);
 	} catch (error) {
 		return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Invalid access token' : '');
 	}
