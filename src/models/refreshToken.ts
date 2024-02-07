@@ -1,12 +1,13 @@
-import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import User from './user';
 
 @Entity()
 export default class RefreshToken extends BaseEntity {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@Column()
-	idUser: number;
+	@ManyToOne(() => User, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
+	user: User;
 
 	@Column()
 	token: string;
