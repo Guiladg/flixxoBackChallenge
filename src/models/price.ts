@@ -1,4 +1,3 @@
-import { IsNotEmpty } from 'class-validator';
 import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import Currency from './currency';
 
@@ -11,7 +10,6 @@ export default class Price extends BaseEntity {
 	currency: Currency;
 
 	@Column()
-	@IsNotEmpty()
 	value: number;
 
 	@Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

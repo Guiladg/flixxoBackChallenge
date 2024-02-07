@@ -5,15 +5,13 @@ import { createTokens, removeToken } from '../utils/jwt';
 import RefreshToken from '../models/refreshToken';
 import { MoreThan } from 'typeorm';
 import { RefreshPayload } from '../types/payload';
+import { ClientRecord } from '../types/client';
 
 class AuthController {
 	/** Login user and send tokens. */
 	static login = async (req: Request, res: Response) => {
 		// Login data from body
 		const { username, password } = req.body;
-		if (!username || !password) {
-			return res.status(400).send('Username and password are required');
-		}
 
 		// Find user by username or email
 		let user: User;
@@ -22,12 +20,12 @@ class AuthController {
 				where: [{ username: username.toLowerCase() }, { email: username.toLowerCase() }]
 			});
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Incorrect username' : 'Incorrect username or password');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Incorrect username' : 'Incorrect username or password' });
 		}
 
 		// Check password
-		if (!user.checkPassword(password)) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Incorrect password' : 'Incorrect username or password');
+		if (!(await user.checkPassword(password))) {
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Incorrect password' : 'Incorrect username or password' });
 		}
 
 		// Create tokens and store refresh in database
@@ -37,7 +35,8 @@ class AuthController {
 		try {
 			[newAccessToken, newRefreshToken, newControlToken] = createTokens(user);
 		} catch (error) {
-			return res.status(500).send();
+			// Return errors with code and message if exists
+			res.status(error?.status ?? 500).send(error?.message ?? '');
 		}
 
 		// Send tokens to the client inside cookies
@@ -62,18 +61,26 @@ class AuthController {
 			maxAge: Number(process.env.REFRESH_TOKEN_LIFE) * 60 * 1000
 		});
 
-		// Return user without sensitive information
-		const { password: pass, ...retData } = user;
-		res.send(retData);
+		// Set in record user without sensitive information
+		const { password: pass, ...record } = user;
+
+		// Create return to client object
+		const ret: ClientRecord = {
+			record,
+			message: 'Login Ok'
+		};
+
+		// Return 200 and the user data
+		res.status(200).json(ret);
 	};
 
 	/** Refresh tokens and send new ones. */
 	static refresh = async (req: Request, res: Response) => {
 		// Control (non-http-only) token from cookies
-		const controlToken = req.cookies.control_token;
+		const controlToken: string = req.cookies.control_token;
 
 		// Refresh token from cookies
-		const refreshToken = req.cookies.refresh_token;
+		const refreshToken: string = req.cookies.refresh_token;
 
 		// If there is no control token, complete unfinished logout and return error status
 		if (!controlToken) {
@@ -83,19 +90,19 @@ class AuthController {
 			// Delete cookies from client
 			res.cookie('access_token', '', { maxAge: 1 });
 			res.cookie('refresh_token', '', { maxAge: 1 });
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'No control token' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'No control token' : '' });
 		}
 
 		// If there is no refresh token, the request is unauthorized
 		if (!refreshToken) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'No refresh token' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'No refresh token' : '' });
 		}
 
 		// Validate control token
 		try {
 			jwt.verify(controlToken, process.env.REFRESH_TOKEN_SECRET);
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Invalid control token' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Invalid control token' : '' });
 		}
 
 		// Validate refresh token
@@ -103,7 +110,7 @@ class AuthController {
 		try {
 			refreshPayload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET) as RefreshPayload;
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Invalid refresh token' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Invalid refresh token' : '' });
 		}
 
 		// Get user
@@ -111,7 +118,7 @@ class AuthController {
 		try {
 			user = await User.findOneOrFail({ where: { id: refreshPayload.idUser } });
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'User not found' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'User not found' : '' });
 		}
 
 		// Verify that the refresh token is in database and remove it
@@ -120,11 +127,11 @@ class AuthController {
 		try {
 			const expirationTime = Math.round(new Date().getTime() / 1000);
 			refreshTokenRecord = await RefreshToken.findOneOrFail({
-				where: { idUser: refreshPayload.idUser, token: refreshPayload.token, expires: MoreThan(expirationTime) }
+				where: { user: { id: refreshPayload.idUser }, token: refreshPayload.token, expires: MoreThan(expirationTime) }
 			});
 			refreshTokenRecord.remove();
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Refresh token not found' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Refresh token not found' : '' });
 		}
 
 		// Create tokens and store refresh in database
@@ -134,7 +141,7 @@ class AuthController {
 		try {
 			[newAccessToken, newRefreshToken, newControlToken] = createTokens(user);
 		} catch (error) {
-			return res.status(401).send(process.env.NODE_ENV !== 'production' ? 'Unexpected error while creating tokens' : '');
+			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Unexpected error while creating tokens' : '' });
 		}
 
 		// Send new tokens to the client inside cookies
@@ -162,7 +169,7 @@ class AuthController {
 	/** Logout user and delete tokens. */
 	static logout = async (req: Request, res: Response) => {
 		// Refresh token from cookies
-		const refreshToken = req.cookies.refresh_token;
+		const refreshToken: string = req.cookies.refresh_token;
 
 		// Remove refresh token from database
 		removeToken(refreshToken);

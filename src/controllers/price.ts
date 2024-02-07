@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { ClientList } from '../types/client';
+import { ClientList, ClientRecord } from '../types/client';
 import Price from '../models/price';
 import { FindManyOptions } from 'typeorm';
 import Currency from '../models/currency';
-import { validate } from 'class-validator';
+import { createRecord, updateRecord } from '../utils/crud';
+import DataBaseError from '../errors/DataBaseError';
 
 export interface ClientPriceNoId {
 	value: number;
@@ -63,7 +64,7 @@ class PriceController {
 	/** Send the last price for the requested currency code. */
 	static getLast = async (req: Request, res: Response) => {
 		// Currency symbol from url
-		const symbol = req.params.symbol;
+		const symbol = req.params.symbol.toUpperCase();
 
 		// User is logged in when jwt payload is in request
 		const isLoggedIn = Boolean(req?.jwtPayload);
@@ -77,13 +78,13 @@ class PriceController {
 		}
 
 		// Send first element isolated with 200 status code
-		res.send(records);
+		res.json(records);
 	};
 
 	/** Send historical prices for the requested currency code. */
 	static listAll = async (req: Request, res: Response) => {
 		// Currency symbol from url
-		const symbol = req.params.symbol;
+		const symbol = req.params.symbol.toUpperCase();
 
 		// User is logged in when jwt payload is in request
 		const isLoggedIn = Boolean(req?.jwtPayload);
@@ -115,21 +116,16 @@ class PriceController {
 		};
 
 		// Send data with 200 status code
-		res.send(ret);
+		res.json(ret);
 	};
 
 	/** Handle price insertion. */
 	static addNew = async (req: Request, res: Response) => {
 		// Currency symbol from url
-		const symbol = req.params.symbol;
+		const symbol = req.params.symbol.toUpperCase();
 
 		// Data from body
 		const { value, date } = req.body;
-
-		// Value validation error
-		if (!value || isNaN(Number(value))) {
-			return res.sendStatus(409);
-		}
 
 		// Find currency by symbol
 		const currency = await Currency.findOneBy({ symbol });
@@ -139,32 +135,19 @@ class PriceController {
 			return res.sendStatus(404);
 		}
 
-		// Create temp record
-		const record = new Price();
-		record.currency = currency;
-		record.value = Number(value);
-		if (date) {
-			record.date = date;
-		}
-
-		// Validate data
-		const errors = await validate(record);
-		if (errors.length > 0) {
-			return res.status(400).send(errors);
-		}
-
-		// Try to save the record
+		// Create record
 		try {
-			await record.save();
-		} catch (e) {
-			return res.status(500).send();
-		}
+			const record = await createRecord(Price, { data: req.body });
 
-		// Return 201 and the newly created record without
-		res.status(201).send({
-			record: record,
-			text: 'New price inserted Ok'
-		});
+			// Create return to client object
+			const ret: ClientRecord = {
+				record,
+				message: 'New price inserted Ok'
+			};
+		} catch (error) {
+			// Return errors with code and message if exists
+			res.status(error?.status ?? 500).send(error?.message ?? '');
+		}
 	};
 
 	/** Handle price edition. */
@@ -172,48 +155,19 @@ class PriceController {
 		// Price id from url
 		const id = Number(req.params.id);
 
-		// Data from body
-		const { value, date } = req.body;
-
-		// Value validation error
-		if (value && isNaN(Number(value))) {
-			return res.sendStatus(409);
-		}
-
-		// Find currency by symbol
-		const record = await Price.findOneBy({ id });
-
-		// No price error
-		if (!record) {
-			return res.sendStatus(404);
-		}
-
-		// Edit temp record
-		if (value) {
-			record.value = value;
-		}
-		if (date) {
-			record.date = date;
-		}
-
-		// Validate data
-		const errors = await validate(record);
-		if (errors.length > 0) {
-			return res.status(400).send(errors);
-		}
-
-		// Try to save the record
+		// Create record
 		try {
-			await record.save();
-		} catch (e) {
-			return res.status(500).send();
-		}
+			const record = await updateRecord(Price, { data: { id, ...req.body } });
 
-		// Return 200 and the modified record
-		res.status(200).send({
-			record: record,
-			text: 'Price modified Ok'
-		});
+			// Create return to client object
+			const ret: ClientRecord = {
+				record,
+				message: 'New price inserted Ok'
+			};
+		} catch (error) {
+			// Return errors with code and message if exists
+			res.status(error?.status ?? 500).send(error?.message ?? '');
+		}
 	};
 }
 

@@ -21,7 +21,7 @@ class CurrencyController {
 		};
 
 		// Send data with 200 status code
-		res.send(ret);
+		res.json(ret);
 	};
 }
 
