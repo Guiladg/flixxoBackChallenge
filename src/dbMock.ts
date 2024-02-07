@@ -57,7 +57,7 @@ dataSource
 				// @ts-ignore
 				newRecord[key] = newData[key];
 			}
-			newRecord.hashPassword();
+			await newRecord.hashPassword();
 			try {
 				await newRecord.save();
 				console.info('User created ok:', newData.username);
