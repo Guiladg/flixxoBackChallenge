@@ -23,6 +23,7 @@ Comments are made according to Deno style guide: https://docs.deno.com/runtime/m
 -  Class-Validator
 -  BcryptJS
 -  Docker
+-  Jest
 
 ### Prerequisites
 
