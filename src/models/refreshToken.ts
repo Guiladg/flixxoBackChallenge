@@ -1,21 +1,36 @@
-import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import User from './user';
+import DB from '../DB';
+import { CreationOptional, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute } from 'sequelize';
 
-@Entity()
-export default class RefreshToken extends BaseEntity {
-	@PrimaryGeneratedColumn()
-	id: number;
+export default class RefreshToken extends Model<InferAttributes<RefreshToken>, InferCreationAttributes<RefreshToken>> {
+	// Attributes
+	declare id: CreationOptional<number>;
+	declare token: string;
+	declare expires: number; // Timestamp w/o ms for expiration date
 
-	@ManyToOne(() => User, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
-	user: User;
-
-	@Column()
-	token: string;
-
-	@Column()
-	@CreateDateColumn()
-	createdAt: Date;
-
-	@Column({ type: 'bigint' })
-	expires: number;
+	// Relationships
+	declare userId: ForeignKey<User['id']>;
+	declare user: NonAttribute<User>;
 }
+
+const sequelize = DB.getInstance();
+
+RefreshToken.init(
+	{
+		id: {
+			type: DataTypes.INTEGER,
+			autoIncrement: true,
+			primaryKey: true
+		},
+		token: {
+			type: DataTypes.STRING,
+			allowNull: false
+		},
+		expires: {
+			type: DataTypes.BIGINT,
+			allowNull: false
+		}
+	},
+	{ sequelize, modelName: 'RefreshToken', tableName: `${process.env.DB_PREFIX}refreshToken` }
+);
+RefreshToken.belongsTo(User, { as: 'user' });

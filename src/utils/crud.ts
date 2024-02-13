@@ -1,46 +1,50 @@
-import dataSource from '../dataSource';
-import { BaseEntity, FindOptionsWhere } from 'typeorm';
+import dataSource from '../DB';
 import NotFoundError from '../errors/NotFoundError';
 import DataBaseError from '../errors/DataBaseError';
-import Price from '../models/price';
+import { Attributes, CreationAttributes, FindOptions, Model, WhereOptions } from 'sequelize';
+import DB from '../DB';
+import { Constructor } from '../types/constructor';
 
-/** Object with entity fields as keys */
-export type ModelData<E extends BaseEntity> = {
-	[P in keyof E]?: E[P] extends () => any ? never : E[P];
-};
-
-/** Entity field as literal */
-export type Field<E extends BaseEntity> = keyof ModelData<E>;
+/** Entity field as literals */
+export type Field<E extends Model> = keyof Attributes<E>;
 
 /** Posible CRUD operations */
 export type CrudOperation = 'create' | 'update' | 'delete';
 
-export type UpdateCrudOptions<E extends BaseEntity> = {
+/** Every crudRecord Fn options posible */
+export interface AllCrudOptions<E extends Model> {
 	fields?: Field<E>[];
-	data: ModelData<E>;
+	data: Partial<Attributes<E>>;
 	idField?: Field<E>;
-};
-export type CreateCrudOptions<E extends BaseEntity> = Omit<UpdateCrudOptions<E>, 'idField'>;
-export type DeleteCrudOptions<E extends BaseEntity> = Omit<UpdateCrudOptions<E>, 'fields'>;
-export type CrudOptions<O extends CrudOperation, E extends BaseEntity> = O extends 'create'
+}
+/** When creating, crudRecord Fn options are just fields and data */
+export interface CreateCrudOptions<E extends Model> extends Omit<AllCrudOptions<E>, 'idField'> {
+	data: CreationAttributes<E>;
+}
+/** When updating, crudRecord Fn options are all of them. */
+export interface UpdateCrudOptions<E extends Model> extends AllCrudOptions<E> {}
+/** When deleting, crudRecord Fn options are just data, idField and softDelete */
+export interface DeleteCrudOptions<E extends Model> extends Omit<AllCrudOptions<E>, 'fields'> {}
+
+export type CrudOptions<O extends CrudOperation, E extends Model> = O extends 'create'
 	? CreateCrudOptions<E>
 	: O extends 'delete'
 	? DeleteCrudOptions<E>
 	: UpdateCrudOptions<E>;
 
 /** Executes a CRUD operations according to options.
- * @param options.operation The type of operation to execute
+ * @param options.operation The type of operation to execute.
  * @param options.fields The fields of the new or updated entity to fill with the values in `data`. If not provided, every field in `data` and in the entity will be filled.
- * @param options.data Object containing the values to fill the new or updated entity.
- * @param options.idField The field that acts as primary column. If not provided, `id` will be used.
+ * @param options.data Object containing the values to fill the new or updated entity. Also, if needed, includes the primary key value.
+ * @param options.idField The field that acts as primary key column. If not provided, `id` will be used.
  */
-export async function crudRecord<Operation extends CrudOperation, Entity extends BaseEntity>(
+export async function crudRecord<Operation extends CrudOperation, Entity extends Model>(
 	operation: Operation,
-	entity: new () => Entity,
+	entity: Constructor<Entity>,
 	options: CrudOptions<Operation, Entity>
-) {
-	// Parameters (as UpdateCrudOptions for avoiding "property does not exist on type")
-	const { data, fields, idField } = options as UpdateCrudOptions<Entity>;
+): Promise<Entity> {
+	// Parameters (as AllCrudOptions for avoiding "property does not exist on type")
+	const { data, fields, idField } = options as AllCrudOptions<Entity>;
 	// If idField is not specified, use 'id'
 	const _idField = (idField ?? 'id') as keyof Entity;
 
@@ -52,16 +56,17 @@ export async function crudRecord<Operation extends CrudOperation, Entity extends
 		record = new entity();
 	} else {
 		// Find record by id
-		try {
-			const where = { [_idField]: data[_idField] } as FindOptionsWhere<Entity>;
-			record = await dataSource.manager.findOneByOrFail(entity, where);
-		} catch (cause) {
-			throw new NotFoundError({ message: cause.message, cause });
+		const where = { [_idField]: data[_idField] } as WhereOptions<Entity>;
+		// Prevent TS from "Property 'findOne' does not exist on type 'Constructor<Entity>'". Entity extends Model, so findOne does exists.
+		record = await (entity as any).findOne({ where });
+
+		if (!record) {
+			throw new NotFoundError({ message: 'Record not found on DB.' });
 		}
 	}
 
 	if (operation !== 'delete') {
-		// Fill record with data (can enumerate fields or leave it automatic)
+		// Fill record with data (fields can be enumerated or leave it automatic)
 		if (fields != undefined) {
 			for (const field of fields) {
 				record[field] = data[field];
@@ -76,9 +81,9 @@ export async function crudRecord<Operation extends CrudOperation, Entity extends
 	// try to Delete/Save record
 	try {
 		if (operation === 'delete') {
-			await dataSource.manager.remove(record);
+			await record.destroy();
 		} else {
-			await dataSource.manager.save(record);
+			await record.save();
 		}
 	} catch (cause) {
 		throw new DataBaseError({ message: cause.message, cause });
@@ -91,7 +96,7 @@ export async function crudRecord<Operation extends CrudOperation, Entity extends
  * @param options.fields The fields of the new or updated entity to fill with the values in `data`. If not provided, every field in `data` and in the entity will be filled.
  * @param options.data Object containing the values to fill the new or updated entity.
  */
-export async function createRecord<Entity extends BaseEntity>(entity: new () => Entity, options: CreateCrudOptions<Entity>) {
+export async function createRecord<Entity extends Model>(entity: Constructor<Entity>, options: CreateCrudOptions<Entity>): Promise<Entity> {
 	return crudRecord('create', entity, options);
 }
 
@@ -100,7 +105,7 @@ export async function createRecord<Entity extends BaseEntity>(entity: new () => 
  * @param options.data Object containing the values to fill the new or updated entity.
  * @param options.idField The field that acts as primary column. If not provided, `id` will be used.
  */
-export async function updateRecord<Entity extends BaseEntity>(entity: new () => Entity, options: UpdateCrudOptions<Entity>) {
+export async function updateRecord<Entity extends Model>(entity: Constructor<Entity>, options: UpdateCrudOptions<Entity>): Promise<Entity> {
 	return crudRecord('update', entity, options);
 }
 
@@ -108,6 +113,6 @@ export async function updateRecord<Entity extends BaseEntity>(entity: new () => 
  * @param options.idField The field that acts as primary column. If not provided, `id` will be used.
  * @param options.data Object containing the values to fill the new or updated entity.
  */
-export async function deleteRecord<Entity extends BaseEntity>(entity: new () => Entity, options: DeleteCrudOptions<Entity>) {
+export async function deleteRecord<Entity extends Model>(entity: Constructor<Entity>, options: DeleteCrudOptions<Entity>): Promise<Entity> {
 	return crudRecord('delete', entity, options);
 }

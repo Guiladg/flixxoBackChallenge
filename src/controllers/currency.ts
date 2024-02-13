@@ -6,7 +6,7 @@ class CurrencyController {
 	/** Send list of currencies. */
 	static listAll = async (req: Request, res: Response) => {
 		// Get all currencies from table
-		const records = await Currency.find({ select: ['name', 'symbol', 'introductionYear'] });
+		const records = await Currency.scope('noId').findAll();
 
 		// Get count of rows (for future pagination)
 		const totalRecords = await Currency.count();

@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { ClientList, ClientRecord } from '../types/client';
 import Price from '../models/price';
-import { FindManyOptions } from 'typeorm';
 import Currency from '../models/currency';
 import { createRecord, updateRecord } from '../utils/crud';
-import DataBaseError from '../errors/DataBaseError';
+import { FindOptions } from 'sequelize';
 
 export interface ClientPriceNoId {
 	value: number;
@@ -28,26 +27,15 @@ class PriceController {
 		{ last = false, showIds = false }: O = {} as O
 	): Promise<PriceReturnType<O>> {
 		// Get all prices from table
-		const findOptions: FindManyOptions<Price> = {
-			select: {
-				id: showIds || last ? true : false, // TypeORM bug that needs to select id when using sql LIMIT
-				value: true,
-				date: true,
-				currency: {
-					id: false,
-					symbol: false,
-					name: false
-				}
-			},
-			where: {
-				currency: {
-					symbol: symbol.toUpperCase()
-				}
-			},
-			order: {
-				date: 'desc'
-			},
-			relations: ['currency']
+		const findOptions: FindOptions<Price> = {
+			attributes: [...(showIds ? ['id'] : []), 'date', 'value'],
+			include: {
+				model: Currency,
+				as: 'Currency',
+				attributes: [],
+				where: { symbol },
+				required: true
+			}
 		};
 
 		let data: Price | Price[];
@@ -55,7 +43,7 @@ class PriceController {
 			data = await Price.findOne(findOptions);
 			delete data.id; // Workaround for TypeORM bug
 		} else {
-			data = await Price.find(findOptions);
+			data = await Price.findAll(findOptions);
 		}
 
 		return data as any; // Types are ok
@@ -99,11 +87,7 @@ class PriceController {
 
 		// Get count of rows (for future pagination)
 		const totalRecords = await Price.count({
-			where: {
-				currency: {
-					symbol: symbol.toUpperCase()
-				}
-			}
+			include: { model: Currency, where: { symbol } }
 		});
 
 		// Create return to client object
@@ -124,11 +108,8 @@ class PriceController {
 		// Currency symbol from url
 		const symbol = req.params.symbol.toUpperCase();
 
-		// Data from body
-		const { value, date } = req.body;
-
 		// Find currency by symbol
-		const currency = await Currency.findOneBy({ symbol });
+		const currency = await Currency.findOne({ where: { symbol } });
 
 		// No currency error
 		if (!currency) {
@@ -137,13 +118,16 @@ class PriceController {
 
 		// Create record
 		try {
-			const record = await createRecord(Price, { data: req.body });
+			const record = await createRecord(Price, { data: { CurrencyId: currency.id, ...req.body } });
 
 			// Create return to client object
 			const ret: ClientRecord = {
 				record,
 				message: 'New price inserted Ok'
 			};
+
+			// Return 200 and the created record
+			res.status(200).json(ret);
 		} catch (error) {
 			// Return errors with code and message if exists
 			res.status(error?.status ?? 500).send(error?.message ?? '');
@@ -162,8 +146,11 @@ class PriceController {
 			// Create return to client object
 			const ret: ClientRecord = {
 				record,
-				message: 'New price inserted Ok'
+				message: 'Price updated Ok'
 			};
+
+			// Return 200 and the updated record
+			res.status(200).json(ret);
 		} catch (error) {
 			// Return errors with code and message if exists
 			res.status(error?.status ?? 500).send(error?.message ?? '');

@@ -29,16 +29,12 @@ export function createTokens(user: User): [string, string, string] {
 	});
 
 	// Save refresh token in database
-	const refreshTokenRecord = new RefreshToken();
-	refreshTokenRecord.user = user;
-	refreshTokenRecord.token = token;
-	refreshTokenRecord.expires = Math.round(new Date().getTime() / 1000) + Number(process.env.REFRESH_TOKEN_LIFE);
 	try {
-		refreshTokenRecord.save();
+		const expires = Math.round(new Date().getTime() / 1000) + Number(process.env.REFRESH_TOKEN_LIFE);
+		RefreshToken.create({ token, expires, userId: user.id });
 	} catch (cause) {
 		throw new DataBaseError({ message: cause.message, cause });
 	}
-
 	return [newAccessToken, newRefreshToken, newControlToken];
 }
 
@@ -52,9 +48,9 @@ export function verifyToken<T extends 'access' | 'refresh' | 'control'>(type: T,
 export const removeToken = async (refreshToken: string) => {
 	try {
 		const { idUser, token } = verifyToken('refresh', refreshToken);
-		const refreshTokenRecord = await RefreshToken.findOne({ where: { user: { id: idUser }, token } });
+		const refreshTokenRecord = await RefreshToken.findOne({ where: { userId: idUser, token } });
 		if (refreshTokenRecord) {
-			refreshTokenRecord.remove();
+			refreshTokenRecord.destroy();
 		}
 	} catch (error) {
 		// Just avoid nodejs crashing

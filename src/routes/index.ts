@@ -8,5 +8,4 @@ const routes = Router();
 routes.use('/auth', auth);
 routes.use('/currency', currency);
 routes.use('/price', price);
-
 export default routes;

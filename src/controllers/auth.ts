@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import User from '../models/user';
 import { createTokens, removeToken } from '../utils/jwt';
 import RefreshToken from '../models/refreshToken';
-import { MoreThan } from 'typeorm';
 import { RefreshPayload } from '../types/payload';
 import { ClientRecord } from '../types/client';
+import User from '../models/user';
+import { Op } from 'sequelize';
 
 class AuthController {
 	/** Login user and send tokens. */
@@ -14,12 +14,10 @@ class AuthController {
 		const { username, password } = req.body;
 
 		// Find user by username or email
-		let user: User;
-		try {
-			user = await User.findOneOrFail({
-				where: [{ username: username.toLowerCase() }, { email: username.toLowerCase() }]
-			});
-		} catch (error) {
+		const user = await User.findOne({
+			where: { [Op.or]: [{ username: username.toLowerCase() }, { email: username.toLowerCase() }] }
+		});
+		if (!user) {
 			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Incorrect username' : 'Incorrect username or password' });
 		}
 
@@ -62,7 +60,7 @@ class AuthController {
 		});
 
 		// Set in record user without sensitive information
-		const { password: pass, ...record } = user;
+		const { password: pass, ...record } = user.dataValues;
 
 		// Create return to client object
 		const ret: ClientRecord = {
@@ -114,25 +112,26 @@ class AuthController {
 		}
 
 		// Get user
-		let user: User;
-		try {
-			user = await User.findOneOrFail({ where: { id: refreshPayload.idUser } });
-		} catch (error) {
+		const user = await User.findOne({ where: { id: refreshPayload.idUser } });
+		if (!user) {
 			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'User not found' : '' });
 		}
 
 		// Verify that the refresh token is in database and remove it
 		// Double check validity
-		let refreshTokenRecord: RefreshToken;
-		try {
-			const expirationTime = Math.round(new Date().getTime() / 1000);
-			refreshTokenRecord = await RefreshToken.findOneOrFail({
-				where: { user: { id: refreshPayload.idUser }, token: refreshPayload.token, expires: MoreThan(expirationTime) }
-			});
-			refreshTokenRecord.remove();
-		} catch (error) {
+		const expirationTime = Math.round(new Date().getTime() / 1000);
+		const { idUser, token } = refreshPayload;
+		const refreshTokenRecord = await RefreshToken.findOne({
+			where: {
+				userId: idUser,
+				token,
+				expires: { [Op.gt]: expirationTime }
+			}
+		});
+		if (!refreshTokenRecord) {
 			return res.status(401).json({ message: process.env.NODE_ENV !== 'production' ? 'Refresh token not found' : '' });
 		}
+		refreshTokenRecord.destroy();
 
 		// Create tokens and store refresh in database
 		let newAccessToken: string;
@@ -163,6 +162,7 @@ class AuthController {
 			httpOnly: false,
 			maxAge: Number(process.env.REFRESH_TOKEN_LIFE) * 60 * 1000
 		});
+
 		res.send();
 	};
 
